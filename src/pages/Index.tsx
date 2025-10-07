@@ -109,6 +109,7 @@ export default function Index() {
         status: 'online',
       });
       setIsLoggedIn(true);
+      setSelectedTab('channels');
     }
   };
 
