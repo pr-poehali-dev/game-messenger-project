@@ -32,12 +32,49 @@ interface Friend {
   game?: string;
 }
 
+interface Message {
+  id: string;
+  userId: string;
+  username: string;
+  text: string;
+  timestamp: Date;
+  avatar: string;
+}
+
 export default function Index() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [selectedTab, setSelectedTab] = useState('channels');
+  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: '1',
+      userId: '2',
+      username: 'ProGamer',
+      text: 'Всем привет! Кто готов к катке?',
+      timestamp: new Date(Date.now() - 300000),
+      avatar: '',
+    },
+    {
+      id: '2',
+      userId: '3',
+      username: 'SkillMaster',
+      text: 'Я за! Соберем команду?',
+      timestamp: new Date(Date.now() - 240000),
+      avatar: '',
+    },
+    {
+      id: '3',
+      userId: '4',
+      username: 'NinjaPlayer',
+      text: 'Давайте в 21:00 начнем турнир',
+      timestamp: new Date(Date.now() - 180000),
+      avatar: '',
+    },
+  ]);
+  const [newMessage, setNewMessage] = useState('');
 
   const channels: Channel[] = [
     { id: '1', name: 'Valorant Heroes', game: 'Valorant', icon: '🎯', members: 234, color: '#7C3AED' },
@@ -73,6 +110,34 @@ export default function Index() {
       });
       setIsLoggedIn(true);
     }
+  };
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newMessage.trim() && currentUser) {
+      const message: Message = {
+        id: Date.now().toString(),
+        userId: currentUser.id,
+        username: currentUser.username,
+        text: newMessage,
+        timestamp: new Date(),
+        avatar: currentUser.avatar,
+      };
+      setMessages([...messages, message]);
+      setNewMessage('');
+    }
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleChannelClick = (channel: Channel) => {
+    setSelectedChannel(channel);
+  };
+
+  const handleBackToChannels = () => {
+    setSelectedChannel(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -193,13 +258,40 @@ export default function Index() {
 
       <main className="flex-1 flex flex-col">
         <header className="h-16 border-b border-border flex items-center justify-between px-6 bg-card/50 backdrop-blur-sm">
-          <h2 className="text-xl font-bold">
-            {selectedTab === 'channels' && '🎮 Каналы'}
-            {selectedTab === 'friends' && '👥 Друзья'}
-            {selectedTab === 'profile' && '👤 Профиль'}
-            {selectedTab === 'stats' && '📊 Статистика'}
-          </h2>
+          <div className="flex items-center gap-3">
+            {selectedChannel && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleBackToChannels}
+                className="hover-glow"
+              >
+                <Icon name="ArrowLeft" size={20} />
+              </Button>
+            )}
+            <h2 className="text-xl font-bold">
+              {selectedChannel ? (
+                <span className="flex items-center gap-2">
+                  <span>{selectedChannel.icon}</span>
+                  {selectedChannel.name}
+                </span>
+              ) : (
+                <>
+                  {selectedTab === 'channels' && '🎮 Каналы'}
+                  {selectedTab === 'friends' && '👥 Друзья'}
+                  {selectedTab === 'profile' && '👤 Профиль'}
+                  {selectedTab === 'stats' && '📊 Статистика'}
+                </>
+              )}
+            </h2>
+          </div>
           <div className="flex items-center gap-4">
+            {selectedChannel && (
+              <Badge variant="outline" className="border-muted-foreground">
+                <Icon name="Users" size={14} className="mr-1" />
+                {selectedChannel.members} участников
+              </Badge>
+            )}
             <Badge variant="outline" className="border-accent text-accent">
               <span className="w-2 h-2 rounded-full bg-accent mr-2"></span>
               В сети
@@ -207,61 +299,135 @@ export default function Index() {
           </div>
         </header>
 
-        <ScrollArea className="flex-1">
-          <div className="p-6">
-            {selectedTab === 'channels' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-2xl font-bold mb-1">Игровые каналы</h3>
-                    <p className="text-muted-foreground">Присоединяйся к командам</p>
-                  </div>
-                  <Button className="gradient-purple-red hover-glow">
-                    <Icon name="Plus" size={20} className="mr-2" />
-                    Создать канал
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {channels.map((channel) => (
-                    <Card
-                      key={channel.id}
-                      className="p-6 border-2 hover:border-primary/50 transition-all cursor-pointer hover-glow"
+        {selectedChannel ? (
+          <div className="flex-1 flex flex-col">
+            <ScrollArea className="flex-1 px-6 py-4">
+              <div className="space-y-4 max-w-4xl mx-auto">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex gap-3 animate-fade-in ${
+                      message.userId === currentUser?.id ? 'flex-row-reverse' : ''
+                    }`}
+                  >
+                    <Avatar className="w-10 h-10 border-2 border-primary/50">
+                      <AvatarFallback className="bg-gradient-purple-red text-sm">
+                        {message.username.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div
+                      className={`flex-1 ${
+                        message.userId === currentUser?.id ? 'text-right' : ''
+                      }`}
                     >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-                            style={{ backgroundColor: `${channel.color}20` }}
-                          >
-                            {channel.icon}
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-lg">{channel.name}</h4>
-                            <p className="text-sm text-muted-foreground">{channel.game}</p>
-                          </div>
-                        </div>
+                      <div className="flex items-center gap-2 mb-1">
+                        {message.userId === currentUser?.id ? (
+                          <>
+                            <span className="text-xs text-muted-foreground">
+                              {formatTime(message.timestamp)}
+                            </span>
+                            <span className="font-semibold text-sm">{message.username}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-semibold text-sm">{message.username}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {formatTime(message.timestamp)}
+                            </span>
+                          </>
+                        )}
                       </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Icon name="Users" size={16} />
-                          <span>{channel.members} участников</span>
-                        </div>
-                        <Button
-                          size="sm"
-                          className="hover-glow"
-                          style={{ backgroundColor: channel.color }}
-                        >
-                          Войти
-                        </Button>
+                      <div
+                        className={`inline-block p-3 rounded-2xl max-w-lg ${
+                          message.userId === currentUser?.id
+                            ? 'gradient-purple-red text-white'
+                            : 'bg-muted text-foreground'
+                        }`}
+                      >
+                        {message.text}
                       </div>
-                    </Card>
-                  ))}
-                </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
+            </ScrollArea>
 
+            <div className="border-t border-border p-4 bg-card/50 backdrop-blur-sm">
+              <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex gap-3">
+                <Input
+                  type="text"
+                  placeholder="Введите сообщение..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  className="flex-1 bg-muted border-border"
+                />
+                <Button type="submit" className="gradient-purple-red hover-glow px-6">
+                  <Icon name="Send" size={20} />
+                </Button>
+              </form>
+            </div>
+          </div>
+        ) : (
+          <ScrollArea className="flex-1">
+            <div className="p-6">
+              {selectedTab === 'channels' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-2xl font-bold mb-1">Игровые каналы</h3>
+                      <p className="text-muted-foreground">Присоединяйся к командам</p>
+                    </div>
+                    <Button className="gradient-purple-red hover-glow">
+                      <Icon name="Plus" size={20} className="mr-2" />
+                      Создать канал
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {channels.map((channel) => (
+                      <Card
+                        key={channel.id}
+                        onClick={() => handleChannelClick(channel)}
+                        className="p-6 border-2 hover:border-primary/50 transition-all cursor-pointer hover-glow"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                              style={{ backgroundColor: `${channel.color}20` }}
+                            >
+                              {channel.icon}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-lg">{channel.name}</h4>
+                              <p className="text-sm text-muted-foreground">{channel.game}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Icon name="Users" size={16} />
+                            <span>{channel.members} участников</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="hover-glow"
+                            style={{ backgroundColor: channel.color }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleChannelClick(channel);
+                            }}
+                          >
+                            Войти
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             {selectedTab === 'friends' && (
               <div className="space-y-4">
                 <div className="mb-6">
@@ -491,8 +657,8 @@ export default function Index() {
                 </div>
               </div>
             )}
-          </div>
-        </ScrollArea>
+          </ScrollArea>
+        )}
       </main>
     </div>
   );
